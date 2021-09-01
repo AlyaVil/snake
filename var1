@@ -1,0 +1,162 @@
+import java.util.LinkedList;
+import java.util.Iterator;
+
+PShape svgHead;
+PShape[] svgYummyArray;
+int[][] map=new int[80][80];
+int x=1;
+int y=1;
+int vx=0;
+int vy=0;
+int delay=60;
+String inputKey;
+int cellSize=30;
+int w=600;
+int h=600;
+
+int mapWidth=w/cellSize;
+int mapHeight=h/cellSize;
+
+int bodyLengthLimit=1;
+boolean isGameEnded=false;
+LinkedList<Segment> segmentsOfSnakeBody=new LinkedList<Segment>();
+LinkedList<Yummy> yummyList=new LinkedList<Yummy>();
+
+void setup() {
+  rectMode(CENTER);
+  textAlign(CENTER);
+  textSize(26);
+  svgHead = loadShape("bot1.svg");
+  svgYummyArray=new PShape[2];
+  svgYummyArray[0]=loadShape("klybnuka.svg");
+  svgYummyArray[1]=loadShape("laimon.svg");
+  //should be size(w, h);
+  size(600,600); //должно быть в 5 раз больше размера карты, т.к. мы рисуем прямоугольники 5х5 пикселей
+  initGame();
+}
+
+
+
+
+void draw() {
+  background(0);
+  delay(400/bodyLengthLimit);
+  if (!isGameEnded) {
+    displaySnakeGame();
+  } else { 
+    //если игра завершена, то рисуем экран с надписью Game Over
+    textSize(26);
+    text("Game Over!", width/2, height/2);
+    
+    textSize(10);
+    text("Press R if you want try again", width/2, height/2+30);
+    text("Михаил Ведясов", 1.8*width/2, 1.8*height/2+30);
+    
+  }
+}
+
+
+
+
+void keyPressed() {
+  if (key == CODED) {
+    if (keyCode == UP) {
+      inputKey = "up";
+      vx=0;
+      if (vy!=1) vy=-1;
+      println("UP");
+    } 
+    if (keyCode == DOWN) {
+      inputKey = "down";
+      vx=0;
+      if (vy!=-1) vy=1;
+      println("Down");
+    }
+    if (keyCode == RIGHT) {
+      inputKey = "right";
+      println("Right");
+      if (vx!=-1)  vx=1;
+      vy=0;
+    }
+    if (keyCode == LEFT) {
+      inputKey = "left";
+      println("Left");
+      if (vx!=1)  vx=-1;
+      vy=0;
+    }
+    
+  } else {
+    if (key == 'r' || key == 'R' || key == 'к' || key == 'К') {
+      inputKey = "R";
+      println("R");
+      initGame();
+      
+    }
+  }
+}
+
+void generateRandomYummy(){
+    int xRandom=(int)random(1,width/cellSize-1);
+    int yRandom=(int)random(1,height/cellSize-1 );
+    int textureRandomIndex=(int)random(0,svgYummyArray.length );
+    
+    Yummy randomYummyObject=new Yummy(xRandom,yRandom,cellSize, svgYummyArray[textureRandomIndex]);
+    yummyList.add(randomYummyObject);
+}
+
+void initGame() {
+  bodyLengthLimit=1; //ограничим длинну тела змейки в исходное значение. 
+  segmentsOfSnakeBody=new LinkedList<Segment>(); //пересоздаем список сегментов тела змейки. теперь он пуст. 
+  yummyList=new LinkedList<Yummy>();
+  for(int i=0; i<5; i++) {
+    generateRandomYummy();
+  }
+  vx=0; //изменим скорости змейки на нулевые значения как при старте игры. 
+  vy=0;
+  isGameEnded=false;
+}
+
+void displaySnakeGame() {
+    //телепортируем змейку если вышли за границы экрана
+    if (x<=1) x=mapWidth-1;
+    if (x>=mapWidth) x=1;
+    if (y<=1) y=mapHeight-1;
+    if (y>=mapHeight) y=1;
+    x=x+vx;
+    y=y+vy;
+    int candidateToRemove=-1;
+    int yummyIndex=0;
+    Iterator<Yummy> it1=yummyList.iterator();
+    while(it1.hasNext()) {
+      Yummy singleYummy=it1.next();
+      singleYummy.draw();
+      if (x==singleYummy.getX() && y==singleYummy.getY()) {
+        candidateToRemove=yummyIndex;
+      }
+      yummyIndex=yummyIndex+1;
+    }
+    if (candidateToRemove!=-1)  {
+      yummyList.remove(candidateToRemove);
+      generateRandomYummy();
+      bodyLengthLimit=bodyLengthLimit+1;
+    }
+    
+    
+    Iterator<Segment> it2=segmentsOfSnakeBody.iterator();
+    Segment head=new Segment(x,y,cellSize);
+    
+    shape(svgHead, x*cellSize-(cellSize/2), y*cellSize-(cellSize/2), cellSize, cellSize);
+    
+    while(it2.hasNext()) {
+      Segment bodySegment=it2.next();
+      bodySegment.draw();
+      if (head.getX()==bodySegment.getX() && head.getY()==bodySegment.getY()&&bodyLengthLimit!=1) {
+        println("Game Over");
+        isGameEnded=true;
+      }
+    }
+    segmentsOfSnakeBody.add(head);
+    if(segmentsOfSnakeBody.size()>bodyLengthLimit) {
+      segmentsOfSnakeBody.remove(0);
+    }
+}
